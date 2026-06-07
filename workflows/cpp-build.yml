@@ -1,0 +1,41 @@
+name: C++ Build & Test
+
+# Builds all C++ targets with g++ and runs any test executables found.
+# Uses CMake if a CMakeLists.txt exists, otherwise compiles .cpp files directly.
+
+on:
+  push:
+    paths: ["**.cpp", "**.h", "CMakeLists.txt"]
+  pull_request:
+    paths: ["**.cpp", "**.h", "CMakeLists.txt"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: sudo apt-get install -y cmake g++ ninja-build
+
+      - name: Build with CMake (if present)
+        if: ${{ hashFiles('CMakeLists.txt') != '' }}
+        run: |
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build
+
+      - name: Run tests
+        if: ${{ hashFiles('CMakeLists.txt') != '' }}
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Direct compile (no CMake)
+        if: ${{ hashFiles('CMakeLists.txt') == '' }}
+        run: |
+          find . -name "main.cpp" | while read f; do
+            dir=$(dirname "$f")
+            echo "Compiling $f"
+            g++ -std=c++17 -Wall -Wextra -O2 \
+              $(find "$dir" -name "*.cpp" | tr '\n' ' ') \
+              -o "$dir/out"
+          done

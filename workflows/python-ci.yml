@@ -1,0 +1,46 @@
+name: Python CI
+
+# Lint with ruff, type-check with mypy, test with pytest, report coverage.
+
+on:
+  push:
+    paths: ["**.py", "requirements*.txt"]
+  pull_request:
+    paths: ["**.py", "requirements*.txt"]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install ruff mypy pytest pytest-cov
+
+      - name: Lint (ruff)
+        run: ruff check .
+
+      - name: Type check (mypy)
+        run: mypy . --ignore-missing-imports
+        continue-on-error: true   # non-blocking — remove when fully typed
+
+      - name: Test + coverage
+        run: |
+          pytest tests/ -v \
+            --tb=short \
+            --cov=. \
+            --cov-report=term-missing \
+            --cov-fail-under=70

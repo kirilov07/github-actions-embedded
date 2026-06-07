@@ -1,0 +1,43 @@
+name: Deploy to Jetson
+
+# SSH into a Jetson device and pull the latest Docker image.
+# Requires these repository secrets:
+#   JETSON_HOST     — IP or hostname of the Jetson
+#   JETSON_USER     — SSH username (e.g. "jetson")
+#   JETSON_SSH_KEY  — private key (paste contents of ~/.ssh/id_rsa)
+
+on:
+  workflow_run:
+    workflows: ["Docker Build & Push"]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host:     ${{ secrets.JETSON_HOST }}
+          username: ${{ secrets.JETSON_USER }}
+          key:      ${{ secrets.JETSON_SSH_KEY }}
+          script: |
+            echo "Pulling latest image..."
+            docker pull ghcr.io/${{ github.repository }}:main
+
+            echo "Stopping old container..."
+            docker stop app 2>/dev/null || true
+            docker rm   app 2>/dev/null || true
+
+            echo "Starting new container..."
+            docker run -d \
+              --name app \
+              --restart unless-stopped \
+              --runtime nvidia \
+              -p 8000:8000 \
+              ghcr.io/${{ github.repository }}:main
+
+            echo "Deploy complete — $(docker ps --filter name=app --format '{{.Status}}')"

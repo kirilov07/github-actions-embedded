@@ -1,0 +1,60 @@
+name: Arduino Compile Check
+
+# Compiles every .ino sketch in the repo with arduino-cli.
+# Catches syntax errors and missing library references before they reach hardware.
+
+on:
+  push:
+    paths: ["**.ino"]
+  pull_request:
+    paths: ["**.ino"]
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        board:
+          - fqbn: arduino:avr:uno
+            name: Uno
+          - fqbn: arduino:avr:mega
+            name: Mega
+          - fqbn: arduino:avr:leonardo
+            name: Leonardo
+
+    name: Compile (${{ matrix.board.name }})
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup arduino-cli
+        uses: arduino/setup-arduino-cli@v1
+
+      - name: Install board core
+        run: |
+          arduino-cli core update-index
+          arduino-cli core install arduino:avr
+
+      - name: Install common libraries
+        run: |
+          arduino-cli lib install \
+            "Servo" \
+            "DHT sensor library" \
+            "Adafruit BME280 Library" \
+            "Adafruit SSD1306" \
+            "FastLED" \
+            "IRremote" \
+            "MFRC522" \
+            "RTClib"
+
+      - name: Find and compile all sketches
+        run: |
+          find . -name "*.ino" | while read sketch; do
+            echo "::group::Compiling $sketch"
+            arduino-cli compile \
+              --fqbn ${{ matrix.board.fqbn }} \
+              --warnings all \
+              "$(dirname "$sketch")"
+            echo "::endgroup::"
+          done
