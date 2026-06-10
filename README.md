@@ -25,6 +25,8 @@ Copy any workflow into your `.github/workflows/` folder and it works. Covers the
 | [`docker-build-push.yml`](./workflows/docker-build-push.yml) | Push to `main` / tag | Multi-platform build (amd64 + **arm64**) → push to GHCR |
 | [`deploy-jetson.yml`](./workflows/deploy-jetson.yml) | After Docker push | SSH into Jetson, pull image, restart container |
 
+> **Why no live status badges here?** These files live in [`/workflows/`](./workflows/), not `.github/workflows/`, because this repo is a **library of reusable templates** — they are meant to be copied into other projects, not run inside this repo. You'll see their real green/red status badges in the repos that adopt them (e.g. [`fastapi-sensor-api`](https://github.com/kirilov07/fastapi-sensor-api/actions) and [`mqtt-iot-bridge`](https://github.com/kirilov07/mqtt-iot-bridge/actions), both running `python-ci.yml`).
+
 ---
 
 ## How to use
